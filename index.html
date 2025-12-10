@@ -168,7 +168,7 @@
             </p>
             <div class="btn-group">
                 <button class="btn-primary" id="startBtn" onclick="handleMenuClick()">ابدأ اللعب</button>
-                <button class="btn-fullscreen" onclick="toggleFullScreen()">تشغيل ملء الشاشة ⛶</button>
+                <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullScreen()">تشغيل ملء الشاشة ⛶</button>
             </div>
         </div>
     </div>
@@ -180,6 +180,7 @@
     const menuTitle = document.getElementById('menuTitle');
     const menuDesc = document.getElementById('menuDesc');
     const startBtn = document.getElementById('startBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
     const scoreText = document.getElementById('scoreText');
     const levelText = document.getElementById('levelText');
     const fireMessage = document.getElementById('fireMessage');
@@ -196,7 +197,6 @@
     let bricks = [];
 
     // مسافة آمنة من الأسفل (لرفع الخشبة عن شريط المتصفح)
-    // نرفعها 60 بكسل بدلاً من 10 لتكون آمنة
     const BOTTOM_OFFSET = 60; 
 
     const paddle = {
@@ -216,16 +216,50 @@
         colors: ['#f39c12', '#e74c3c', '#9b59b6', '#3498db', '#2ecc71']
     };
 
-    // دالة تكبير الشاشة
+    // === الدالة الاحترافية لملء الشاشة ===
     function toggleFullScreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(err => {
-                console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-            });
-        } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+        const doc = window.document;
+        const docEl = doc.documentElement;
+
+        // تعريف الوظائف بناءً على المتصفح (Chrome, Firefox, IE, Safari)
+        const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+        const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+        // التحقق مما إذا كنا بالفعل في وضع ملء الشاشة
+        if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+            
+            // محاولة الدخول لوضع ملء الشاشة
+            if (requestFullScreen) {
+                // ملاحظة: هذا السطر يعمل على أندرويد وكروم، لكنه لا يفعل شيئاً على آيفون سفاري
+                requestFullScreen.call(docEl).catch(err => {
+                    // إذا فشل (مثل الآيفون)، نظهر التعليمات
+                    showIphoneInstruction();
+                });
+            } else {
+                // إذا كانت الوظيفة غير موجودة أصلاً (نسخ قديمة من آيفون)
+                showIphoneInstruction();
             }
+        } else {
+            // الخروج من وضع ملء الشاشة
+            if (cancelFullScreen) {
+                cancelFullScreen.call(doc);
+            }
+        }
+    }
+
+    function showIphoneInstruction() {
+        alert("لمستخدمي الآيفون (iOS):\n\nتمنع Apple المواقع من تفعيل ملء الشاشة تلقائياً.\n\nلإخفاء الأشرطة تماماً:\n1. اضغط زر المشاركة (سهم للأعلى) في أسفل المتصفح.\n2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).\n3. افتح اللعبة من الأيقونة الجديدة.");
+    }
+
+    // إخفاء زر ملء الشاشة إذا كانت اللعبة تعمل بالفعل كتطبيق (PWA)
+    function checkStandaloneMode() {
+        // التحقق في iOS
+        const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
+        // التحقق في أندرويد/كروم
+        const isDisplayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
+
+        if (isStandalone || isDisplayModeStandalone) {
+            if(fullscreenBtn) fullscreenBtn.style.display = 'none';
         }
     }
 
@@ -241,10 +275,8 @@
         let width = window.innerWidth;
         let height = window.innerHeight;
 
-        // في الجوال، نريد أن تملأ اللعبة الشاشة
         if (width > maxWidth) {
             width = maxWidth;
-            // في الديسكتوب نجعل لها حدوداً
             if (height > 900) height = 900; 
         }
 
@@ -304,7 +336,6 @@
 
     document.addEventListener('keydown', keyDownHandler);
     document.addEventListener('keyup', keyUpHandler);
-    // document.addEventListener('mousemove', mouseMoveHandler); // الماوس قد يسبب مشاكل مع اللمس أحياناً
     
     // تحسين دعم اللمس
     canvas.addEventListener('touchmove', touchMoveHandler, {passive: false});
@@ -319,7 +350,6 @@
         else if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = false;
     }
     
-    // دمجت الماوس واللمس لتجنب التعارض
     function touchMoveHandler(e) {
         e.preventDefault();
         const touch = e.touches[0];
@@ -350,16 +380,14 @@
         el.className = 'score-float';
         el.innerText = text;
         el.style.color = color;
-        // وضع النص فوق الخشبة تقريباً
         const rect = canvas.getBoundingClientRect();
-        // نحسب المكان بالنسبة للشاشة
         const leftPos = rect.left + paddle.x + paddle.width/2;
         const bottomPos = rect.height - (canvas.height - paddle.height - BOTTOM_OFFSET) + 50;
 
         el.style.left = leftPos + 'px';
         el.style.bottom = bottomPos + 'px';
         
-        document.body.appendChild(el); // نضعه في الـ body مباشرة لسهولة التموضع
+        document.body.appendChild(el); 
         setTimeout(() => el.remove(), 1000);
     }
 
@@ -403,7 +431,6 @@
             return;
         }
 
-        // الاصطدام بالخشبة (ملاحظة: نستخدم BOTTOM_OFFSET هنا)
         if (ball.y + ball.dy > canvas.height - paddle.height - BOTTOM_OFFSET - ball.radius &&
             ball.y < canvas.height - BOTTOM_OFFSET + paddle.height) {
             
@@ -623,6 +650,8 @@
         update();
     }
     
+    // التحقق عند التحميل إذا كان التطبيق مفتوحاً بملء الشاشة بالفعل
+    window.addEventListener('load', checkStandaloneMode);
     window.addEventListener('resize', resizeCanvas);
     window.onload = resizeCanvas;
     resizeCanvas();
