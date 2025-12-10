@@ -2,36 +2,42 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>لعبة كسر الطوب - الكرات المتعددة</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>لعبة كسر الطوب</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
 
-        body {
+        html, body {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* منع التمرير نهائياً */
             background-color: #1a1a2e;
             color: white;
             font-family: 'Tajawal', sans-serif;
-            overflow: hidden;
-            touch-action: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
+            touch-action: none; /* منع إيماءات المتصفح */
+            position: fixed; /* تثبيت الصفحة */
         }
 
         #gameContainer {
             position: relative;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            border: 2px solid #444;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             background: #16213e;
         }
 
         canvas {
             display: block;
             background-color: #0f3460;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            /* الكانفاس سيأخذ الحجم من الجافاسكريبت */
         }
 
         #ui-layer {
@@ -41,20 +47,21 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 10px;
-            box-sizing: border-box;
+            z-index: 5;
         }
 
         .score-board {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
             font-size: 20px;
             font-weight: bold;
             text-shadow: 2px 2px 4px #000;
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
         }
 
         #menu {
@@ -69,19 +76,19 @@
             pointer-events: auto;
             border: 2px solid #e94560;
             min-width: 280px;
-            z-index: 10;
+            z-index: 20;
+            max-width: 90%;
         }
 
-        h1 {
-            margin: 0 0 10px 0;
-            color: #e94560;
-        }
+        h1 { margin: 0 0 10px 0; color: #e94560; }
+        p { margin: 5px 0 20px 0; font-size: 15px; color: #ccc; line-height: 1.6; }
 
-        p {
-            margin: 5px 0 20px 0;
-            font-size: 15px;
-            color: #ccc;
-            line-height: 1.6;
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
         }
 
         button {
@@ -93,30 +100,19 @@
             border-radius: 5px;
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
-            transition: transform 0.1s;
-            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .btn-fullscreen {
+            background: #0f3460;
+            border: 1px solid #e94560;
         }
 
-        button:active {
-            transform: scale(0.95);
-        }
+        .hidden { display: none !important; }
+        #menu.success-theme { border-color: #2ecc71 !important; }
+        #menu.success-theme h1 { color: #2ecc71 !important; }
+        #menu.success-theme .btn-primary { background: #2ecc71 !important; }
 
-        .hidden {
-            display: none !important;
-        }
-
-        /* تنسيق خاص للنافذة الخضراء عند الفوز */
-        #menu.success-theme {
-            border-color: #2ecc71 !important;
-        }
-        #menu.success-theme h1 {
-            color: #2ecc71 !important;
-        }
-        #menu.success-theme button {
-            background: #2ecc71 !important;
-        }
-
-        /* رسالة منبثقة */
         .message-popup {
             position: absolute;
             top: 30%;
@@ -130,21 +126,21 @@
             pointer-events: none;
             width: 100%;
             text-align: center;
+            z-index: 15;
         }
         
-        /* تأثيرات الطوب المكسور (اختياري) */
         .score-float {
             position: absolute;
-            color: #fff;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 24px;
             pointer-events: none;
             animation: floatUp 1s ease-out forwards;
+            z-index: 10;
         }
 
         @keyframes floatUp {
             0% { transform: translateY(0); opacity: 1; }
-            100% { transform: translateY(-30px); opacity: 0; }
+            100% { transform: translateY(-50px); opacity: 0; }
         }
     </style>
 </head>
@@ -155,25 +151,25 @@
         <div id="fireMessage" class="message-popup" style="color: #f39c12; text-shadow: 0 0 10px red;">🔥 كرة نارية! 🔥</div>
         <div id="multiMessage" class="message-popup" style="color: #00FFFF; text-shadow: 0 0 10px blue; top: 40%;">⚽ كرة إضافية! ⚽</div>
         
-        <!-- واجهة المستخدم (النقاط) -->
         <div id="ui-layer">
             <div class="score-board">
                 <span id="scoreText">النقاط: 0</span>
                 <span id="levelText">المستوى: 1</span>
             </div>
-            <div id="scoreEffectContainer"></div>
         </div>
 
-        <!-- القائمة -->
         <div id="menu">
             <h1 id="menuTitle">لعبة كسر الطوب</h1>
-            <p id="menuDesc" style="color: #fff;">
-                <span style="color:#e94560; font-weight:bold">القواعد الجديدة:</span><br>
-                1. كسر طوبة واحدة = <span style="color:red">-1 نقطة</span> (وعودة الطوبة!)<br>
-                2. كسر طوبتين أو أكثر = <span style="color:#2ecc71">عدد الطوب × 2</span> نقاط<br>
-                3. الطوب الذهبي = نار 🔥 | السماوي = كرة ⚽
+            <p id="menuDesc">
+                <span style="color:#e94560; font-weight:bold">القواعد:</span><br>
+                1. كسر طوبة واحدة = <span style="color:red">-1 نقطة</span><br>
+                2. كسر 2+ طوبة = <span style="color:#2ecc71">نقاط مضاعفة</span><br>
+                3. الطوب الذهبي 🔥 | السماوي ⚽
             </p>
-            <button id="startBtn" onclick="handleMenuClick()">ابدأ اللعب</button>
+            <div class="btn-group">
+                <button class="btn-primary" id="startBtn" onclick="handleMenuClick()">ابدأ اللعب</button>
+                <button class="btn-fullscreen" onclick="toggleFullScreen()">تشغيل ملء الشاشة ⛶</button>
+            </div>
         </div>
     </div>
 
@@ -194,13 +190,15 @@
     let score = 0;
     let level = 1;
     let isGameOver = false;
-    let isLevelComplete = false; // حالة جديدة: اكتمال المستوى
+    let isLevelComplete = false;
     let isRunning = false;
-    
-    // مصفوفة الكرات (بدلاً من كرة واحدة)
     let balls = [];
+    let bricks = [];
 
-    // خصائص الخشبة
+    // مسافة آمنة من الأسفل (لرفع الخشبة عن شريط المتصفح)
+    // نرفعها 60 بكسل بدلاً من 10 لتكون آمنة
+    const BOTTOM_OFFSET = 60; 
+
     const paddle = {
         width: 100,
         height: 15,
@@ -209,7 +207,6 @@
         speed: 8
     };
 
-    // خصائص الطوب
     const brickProps = {
         rowCount: 5,
         columnCount: 5,
@@ -218,21 +215,24 @@
         height: 25,
         colors: ['#f39c12', '#e74c3c', '#9b59b6', '#3498db', '#2ecc71']
     };
-    
-    let bricks = [];
 
-    // دالة إنشاء كرة جديدة
+    // دالة تكبير الشاشة
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => {
+                console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+            });
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }
+
     function createBall(x, y, dx, dy, speed) {
         return {
-            x: x, 
-            y: y,
-            dx: dx,
-            dy: dy,
-            radius: 8,
-            speed: speed,
-            color: '#e94560',
-            isFire: false,
-            turnHits: [] // سجل الضربات الخاص بهذه الكرة
+            x: x, y: y, dx: dx, dy: dy, radius: 8, speed: speed,
+            color: '#e94560', isFire: false, turnHits: []
         };
     }
 
@@ -241,9 +241,11 @@
         let width = window.innerWidth;
         let height = window.innerHeight;
 
+        // في الجوال، نريد أن تملأ اللعبة الشاشة
         if (width > maxWidth) {
             width = maxWidth;
-            height = window.innerHeight * 0.9;
+            // في الديسكتوب نجعل لها حدوداً
+            if (height > 900) height = 900; 
         }
 
         canvas.width = width;
@@ -251,13 +253,10 @@
 
         if (!isRunning && !isLevelComplete) {
             initBricks(false);
-            if(balls.length > 0) {
-                balls.forEach(drawBall);
-            }
+            if(balls.length > 0) balls.forEach(drawBall);
             drawBricks();
             drawPaddle();
         } else if (isLevelComplete) {
-            // إعادة الرسم في الخلفية أثناء التوقف
             drawBricks();
             drawPaddle();
         }
@@ -289,28 +288,14 @@
     }
 
     function createBrickAt(c, r) {
-        // احتمالات الميزات
         const rand = Math.random();
-        let isFire = false;
-        let isMulti = false;
+        let isFire = false, isMulti = false;
         let color = brickProps.colors[r % brickProps.colors.length];
 
-        if (rand < 0.1) {
-            isFire = true;
-            color = '#FFD700';
-        } else if (rand < 0.2) {
-            isMulti = true;
-            color = '#00FFFF';
-        }
+        if (rand < 0.1) { isFire = true; color = '#FFD700'; }
+        else if (rand < 0.2) { isMulti = true; color = '#00FFFF'; }
 
-        bricks[c][r] = {
-            x: 0,
-            y: 0,
-            status: 1,
-            color: color,
-            isFire: isFire,
-            isMulti: isMulti
-        };
+        bricks[c][r] = { x: 0, y: 0, status: 1, color: color, isFire: isFire, isMulti: isMulti };
     }
 
     // التحكم
@@ -319,8 +304,11 @@
 
     document.addEventListener('keydown', keyDownHandler);
     document.addEventListener('keyup', keyUpHandler);
-    document.addEventListener('mousemove', mouseMoveHandler);
+    // document.addEventListener('mousemove', mouseMoveHandler); // الماوس قد يسبب مشاكل مع اللمس أحياناً
+    
+    // تحسين دعم اللمس
     canvas.addEventListener('touchmove', touchMoveHandler, {passive: false});
+    canvas.addEventListener('touchstart', touchMoveHandler, {passive: false});
 
     function keyDownHandler(e) {
         if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = true;
@@ -330,61 +318,62 @@
         if (e.key === 'Right' || e.key === 'ArrowRight') rightPressed = false;
         else if (e.key === 'Left' || e.key === 'ArrowLeft') leftPressed = false;
     }
-    function mouseMoveHandler(e) {
-        const relativeX = e.clientX - canvas.getBoundingClientRect().left;
-        if (relativeX > 0 && relativeX < canvas.width) {
-            paddle.x = relativeX - paddle.width / 2;
-        }
-    }
+    
+    // دمجت الماوس واللمس لتجنب التعارض
     function touchMoveHandler(e) {
         e.preventDefault();
-        const relativeX = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        const relativeX = touch.clientX - rect.left;
+        
         if (relativeX > 0 && relativeX < canvas.width) {
             paddle.x = relativeX - paddle.width / 2;
         }
     }
+
+    // للمتصفحات التي تدعم المؤشر (كمبيوتر)
+    canvas.addEventListener('mousemove', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const relativeX = e.clientX - rect.left;
+        if (relativeX > 0 && relativeX < canvas.width) {
+            paddle.x = relativeX - paddle.width / 2;
+        }
+    });
 
     function showMessage(element) {
         element.style.opacity = 1;
-        setTimeout(() => {
-            element.style.opacity = 0;
-        }, 2000);
+        setTimeout(() => { element.style.opacity = 0; }, 2000);
     }
 
-    // دالة جديدة لإظهار تأثير النقاط العائمة
     function showFloatingScore(text, color) {
         const el = document.createElement('div');
         el.className = 'score-float';
         el.innerText = text;
         el.style.color = color;
-        // موقع تقريبي فوق الخشبة
-        el.style.left = (paddle.x + paddle.width/2 + canvas.getBoundingClientRect().left) + 'px';
-        el.style.bottom = '100px'; 
-        // بما أن ui-layer فوق الكانفاس، نضبط الموقع بالنسبة له
-        el.style.left = (paddle.x + paddle.width/2) + 'px';
-        el.style.bottom = '50px';
+        // وضع النص فوق الخشبة تقريباً
+        const rect = canvas.getBoundingClientRect();
+        // نحسب المكان بالنسبة للشاشة
+        const leftPos = rect.left + paddle.x + paddle.width/2;
+        const bottomPos = rect.height - (canvas.height - paddle.height - BOTTOM_OFFSET) + 50;
+
+        el.style.left = leftPos + 'px';
+        el.style.bottom = bottomPos + 'px';
         
-        document.getElementById('ui-layer').appendChild(el);
+        document.body.appendChild(el); // نضعه في الـ body مباشرة لسهولة التموضع
         setTimeout(() => el.remove(), 1000);
     }
 
     function update() {
         if (!isRunning) return;
-
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
         drawBricks();
         drawPaddle();
 
         for (let i = balls.length - 1; i >= 0; i--) {
-            if (balls[i]) {
-                updateBall(balls[i], i);
-            }
+            if (balls[i]) updateBall(balls[i], i);
         }
 
-        if (balls.length === 0 && !isGameOver && !isLevelComplete) {
-            gameOver();
-        }
+        if (balls.length === 0 && !isGameOver && !isLevelComplete) gameOver();
 
         if (rightPressed && paddle.x < canvas.width - paddle.width) paddle.x += 7;
         else if (leftPressed && paddle.x > 0) paddle.x -= 7;
@@ -392,14 +381,11 @@
         if(paddle.x < 0) paddle.x = 0;
         if(paddle.x + paddle.width > canvas.width) paddle.x = canvas.width - paddle.width;
 
-        if (!isGameOver && !isLevelComplete) {
-            animationId = requestAnimationFrame(update);
-        }
+        if (!isGameOver && !isLevelComplete) animationId = requestAnimationFrame(update);
     }
 
     function updateBall(ball, index) {
         drawBall(ball);
-        
         const levelChanged = collisionDetection(ball);
         if (levelChanged) return;
 
@@ -417,43 +403,30 @@
             return;
         }
 
-        if (ball.y + ball.dy > canvas.height - paddle.height - 10 - ball.radius &&
-            ball.y < canvas.height - 10) {
+        // الاصطدام بالخشبة (ملاحظة: نستخدم BOTTOM_OFFSET هنا)
+        if (ball.y + ball.dy > canvas.height - paddle.height - BOTTOM_OFFSET - ball.radius &&
+            ball.y < canvas.height - BOTTOM_OFFSET + paddle.height) {
             
             if (ball.x > paddle.x && ball.x < paddle.x + paddle.width) {
-                
                 if(ball.isFire) ball.isFire = false;
 
-                // === نظام النقاط الجديد ===
                 const hits = ball.turnHits.length;
-                
                 if (hits === 1) {
-                    // 1. خصم درجة واحدة
-                    score -= 1;
-                    if (score < 0) score = 0;
+                    score -= 1; if (score < 0) score = 0;
                     showFloatingScore("-1", "red");
                     
-                    // 2. إعادة الطوبة (العقاب القديم مستمر)
                     const hit = ball.turnHits[0];
-                    if (bricks[hit.c] && bricks[hit.c][hit.r]) {
-                        bricks[hit.c][hit.r].status = 1;
-                    }
-                    // 3. إضافة طوبة عقاب إضافية
+                    if (bricks[hit.c] && bricks[hit.c][hit.r]) bricks[hit.c][hit.r].status = 1;
                     addPenaltyBrick(hit.c, hit.r);
                     
                 } else if (hits >= 2) {
-                    // حساب النقاط: عدد الطوب * 2
                     const points = hits * 2;
                     score += points;
                     showFloatingScore(`+${points}`, "#2ecc71");
                 }
                 
-                // تحديث النص
                 scoreText.innerText = `النقاط: ${score}`;
-
-                // تصفير السجل
                 ball.turnHits = [];
-                // ==========================
 
                 let collidePoint = ball.x - (paddle.x + paddle.width / 2);
                 collidePoint = collidePoint / (paddle.width / 2);
@@ -468,56 +441,38 @@
                 ball.speed = currentSpeed; 
             }
         }
-
         ball.x += ball.dx;
         ball.y += ball.dy;
     }
 
     function collisionDetection(ball) {
         let activeBricksCount = 0;
-
         for (let c = 0; c < brickProps.columnCount; c++) {
             for (let r = 0; r < brickProps.rowCount; r++) {
                 const b = bricks[c][r];
                 if (b.status === 1) {
                     activeBricksCount++;
-                    if (
-                        ball.x > b.x &&
-                        ball.x < b.x + brickProps.width &&
-                        ball.y > b.y &&
-                        ball.y < b.y + brickProps.height
-                    ) {
-                        b.status = 0;
-                        // ملاحظة: ألغينا إضافة النقاط هنا
+                    if (ball.x > b.x && ball.x < b.x + brickProps.width &&
+                        ball.y > b.y && ball.y < b.y + brickProps.height) {
                         
+                        b.status = 0;
                         ball.turnHits.push({c: c, r: r});
 
-                        if (b.isFire) {
-                            ball.isFire = true;
-                            showMessage(fireMessage);
-                        }
-
+                        if (b.isFire) { ball.isFire = true; showMessage(fireMessage); }
                         if (b.isMulti) {
                             showMessage(multiMessage);
                             balls.push(createBall(
-                                b.x + brickProps.width/2, 
-                                b.y + brickProps.height/2, 
-                                ball.speed * (Math.random() > 0.5 ? 1 : -1),
-                                ball.speed, 
-                                ball.speed
+                                b.x + brickProps.width/2, b.y + brickProps.height/2, 
+                                ball.speed * (Math.random() > 0.5 ? 1 : -1), ball.speed, ball.speed
                             ));
                         }
-
-                        if (!ball.isFire) {
-                            ball.dy = -ball.dy;
-                        }
+                        if (!ball.isFire) ball.dy = -ball.dy;
                     }
                 }
             }
         }
-
         if (activeBricksCount === 0) {
-            levelComplete(); // تغيير: استدعاء دالة اكتمال المستوى بدلاً من الانتقال المباشر
+            levelComplete();
             return true;
         }
         return false;
@@ -532,7 +487,6 @@
                 }
             }
         }
-        
         if (emptyBricks.length > 0) {
             const p = emptyBricks[Math.floor(Math.random() * emptyBricks.length)];
             bricks[p.c][p.r].status = 1;
@@ -540,7 +494,6 @@
         } else {
             const newRowIndex = brickProps.rowCount;
             brickProps.rowCount++;
-            
             for (let c = 0; c < brickProps.columnCount; c++) {
                 if (!bricks[c]) bricks[c] = [];
                 bricks[c][newRowIndex] = {
@@ -555,39 +508,32 @@
 
     function applyRandomPowerUp(brick) {
         const rand = Math.random();
-        if (rand < 0.1) {
-            brick.isFire = true;
-            brick.color = '#FFD700';
-        } else if (rand < 0.2) {
-            brick.isMulti = true;
-            brick.color = '#00FFFF';
-        }
+        if (rand < 0.1) { brick.isFire = true; brick.color = '#FFD700'; }
+        else if (rand < 0.2) { brick.isMulti = true; brick.color = '#00FFFF'; }
     }
 
-    // دالة جديدة: تعرض شاشة اكتمال المستوى
     function levelComplete() {
         isRunning = false;
         isLevelComplete = true;
-        
-        // تفعيل الثيم الأخضر
         menu.classList.add('success-theme');
-
         menuTitle.innerText = "أحسنت!";
         menuDesc.innerHTML = `أكملت المستوى ${level}<br>نقاطك الحالية: <span style="color:#2ecc71">${score}</span>`;
         startBtn.innerText = "المستوى التالي";
-        
         menu.classList.remove('hidden');
         menu.style.display = 'block';
     }
 
-    // دالة الانتقال الفعلي للمستوى التالي (تُستدعى من الزر)
+    function handleMenuClick() {
+        if (isGameOver) startGame();
+        else if (isLevelComplete) nextLevel();
+        else startGame();
+    }
+
     function nextLevel() {
         level++;
         initBricks();
         levelText.innerText = `المستوى: ${level}`;
         resetGameKeepScore();
-        
-        // إزالة الثيم الأخضر وإخفاء القائمة
         menu.classList.remove('success-theme');
         menu.classList.add('hidden');
         menu.style.display = 'none';
@@ -599,24 +545,18 @@
     function drawBall(ball) {
         ctx.beginPath();
         ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
-        
         if (ball.isFire) {
-            ctx.fillStyle = '#ff4500';
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = "red";
+            ctx.fillStyle = '#ff4500'; ctx.shadowBlur = 15; ctx.shadowColor = "red";
         } else {
-            ctx.fillStyle = ball.color;
-            ctx.shadowBlur = 0;
+            ctx.fillStyle = ball.color; ctx.shadowBlur = 0;
         }
-        
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.closePath();
+        ctx.fill(); ctx.shadowBlur = 0; ctx.closePath();
     }
 
     function drawPaddle() {
         ctx.beginPath();
-        ctx.rect(paddle.x, canvas.height - paddle.height - 10, paddle.width, paddle.height);
+        // رسم الخشبة مع مراعاة الهامش السفلي
+        ctx.rect(paddle.x, canvas.height - paddle.height - BOTTOM_OFFSET, paddle.width, paddle.height);
         ctx.fillStyle = paddle.color;
         ctx.fill();
         ctx.strokeStyle = "#fff";
@@ -632,27 +572,16 @@
                     const brickY = (r * (brickProps.height + brickProps.padding)) + brickProps.offsetTop;
                     bricks[c][r].x = brickX;
                     bricks[c][r].y = brickY;
-                    
                     ctx.beginPath();
                     ctx.rect(brickX, brickY, brickProps.width, brickProps.height);
-                    
                     if (bricks[c][r].isFire) {
-                        ctx.fillStyle = '#FFD700';
-                        ctx.strokeStyle = '#fff';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
+                        ctx.fillStyle = '#FFD700'; ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
                     } else if (bricks[c][r].isMulti) {
-                        ctx.fillStyle = '#00FFFF';
-                        ctx.strokeStyle = '#000';
-                        ctx.lineWidth = 2;
-                        ctx.stroke();
+                        ctx.fillStyle = '#00FFFF'; ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
                     } else {
-                        ctx.fillStyle = bricks[c][r].color;
-                        ctx.lineWidth = 0;
+                        ctx.fillStyle = bricks[c][r].color; ctx.lineWidth = 0;
                     }
-                    
-                    ctx.fill();
-                    ctx.closePath();
+                    ctx.fill(); ctx.closePath();
                 }
             }
         }
@@ -661,14 +590,7 @@
     function resetGameKeepScore() {
         balls = [];
         let startSpeed = 5 + (level * 0.5);
-        balls.push(createBall(
-            canvas.width / 2, 
-            canvas.height / 2, 
-            startSpeed * (Math.random() * 0.8 - 0.4), 
-            startSpeed, 
-            startSpeed
-        ));
-        
+        balls.push(createBall(canvas.width / 2, canvas.height / 2, startSpeed * (Math.random() * 0.8 - 0.4), startSpeed, startSpeed));
         resetPaddle();
     }
 
@@ -681,52 +603,31 @@
     function gameOver() {
         isGameOver = true;
         isRunning = false;
-        
-        // التأكد من إزالة الثيم الأخضر لتعود حمراء عند الخسارة
         menu.classList.remove('success-theme');
-
         menuTitle.innerText = "انتهت اللعبة!";
         menuDesc.innerHTML = `حصلت على ${score} نقطة.<br>وصلت للمستوى ${level}`;
         startBtn.innerText = "أعد المحاولة";
         menu.classList.remove('hidden');
         menu.style.display = 'block';
     }
-    
-    // دالة موحدة للتعامل مع زر القائمة
-    function handleMenuClick() {
-        if (isGameOver) {
-            startGame();
-        } else if (isLevelComplete) {
-            nextLevel();
-        } else {
-            // بداية اللعبة لأول مرة
-            startGame();
-        }
-    }
 
     function startGame() {
-        score = 0;
-        level = 1;
-        scoreText.innerText = "النقاط: 0";
-        levelText.innerText = "المستوى: 1";
-        isGameOver = false;
-        isLevelComplete = false;
-        isRunning = true;
-        
-        // إزالة الثيم الأخضر عند بدء لعبة جديدة
+        score = 0; level = 1;
+        scoreText.innerText = "النقاط: 0"; levelText.innerText = "المستوى: 1";
+        isGameOver = false; isLevelComplete = false; isRunning = true;
         menu.classList.remove('success-theme');
         menu.classList.add('hidden');
         menu.style.display = 'none';
-
         initBricks();
         resetGameKeepScore();
         update();
     }
     
     window.addEventListener('resize', resizeCanvas);
-    window.onload = function() { resizeCanvas(); };
+    window.onload = resizeCanvas;
     resizeCanvas();
-
 </script>
 </body>
 </html>
+
+
