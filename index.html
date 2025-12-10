@@ -3,9 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- إعدادات تطبيق الويب (PWA) -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="كسر الطوب">
+    <meta name="application-name" content="كسر الطوب">
+    <meta name="theme-color" content="#1a1a2e">
+
+    <!-- أيقونة التطبيق (مدمجة لتعمل بدون ملفات خارجية) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background:%2316213e;border-radius:20px'><text y='.9em' font-size='90' x='50%25' text-anchor='middle'>🧱</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' style='background:%2316213e'><text y='.9em' font-size='90' x='50%25' text-anchor='middle'>🧱</text></svg>">
+
+    <!-- تحسينات الظهور في الشبكات الاجتماعية (واتساب، تويتر، فيسبوك) -->
+    <meta property="og:title" content="تحدي كسر الطوب 🔥">
+    <meta property="og:description" content="هل يمكنك الوصول للمستويات المتقدمة؟ لعبة حماسية بكرات نارية ومتعددة. جربها الآن!">
+    <meta property="og:type" content="website">
+    <!-- صورة افتراضية جذابة للمشاركة -->
+    <meta property="og:image" content="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="تحدي كسر الطوب 🔥">
+    <meta name="twitter:description" content="اكسر الطوب، اجمع الكرات، وحقق أعلى النتائج!">
+    <meta name="twitter:image" content="https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80">
+
     <title>لعبة كسر الطوب</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap');
@@ -15,12 +36,12 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            overflow: hidden; /* منع التمرير نهائياً */
+            overflow: hidden;
             background-color: #1a1a2e;
             color: white;
             font-family: 'Tajawal', sans-serif;
-            touch-action: none; /* منع إيماءات المتصفح */
-            position: fixed; /* تثبيت الصفحة */
+            touch-action: none;
+            position: fixed;
         }
 
         #gameContainer {
@@ -37,7 +58,6 @@
             display: block;
             background-color: #0f3460;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            /* الكانفاس سيأخذ الحجم من الجافاسكريبت */
         }
 
         #ui-layer {
@@ -78,6 +98,7 @@
             min-width: 280px;
             z-index: 20;
             max-width: 90%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
         h1 { margin: 0 0 10px 0; color: #e94560; }
@@ -92,20 +113,31 @@
         }
 
         button {
-            background: #e94560;
             color: white;
             border: none;
             padding: 12px 30px;
             font-size: 18px;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             font-family: 'Tajawal', sans-serif;
             width: 100%;
+            transition: transform 0.1s, opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         
-        .btn-fullscreen {
-            background: #0f3460;
-            border: 1px solid #e94560;
+        button:active { transform: scale(0.96); }
+
+        .btn-primary { background: #e94560; font-weight: bold; }
+        .btn-fullscreen { background: #0f3460; border: 1px solid #e94560; }
+        
+        /* زر المشاركة الجديد */
+        .btn-share { 
+            background: #25D366; /* لون واتساب تقريباً */
+            color: white;
+            font-weight: bold;
         }
 
         .hidden { display: none !important; }
@@ -142,6 +174,23 @@
             0% { transform: translateY(0); opacity: 1; }
             100% { transform: translateY(-50px); opacity: 0; }
         }
+        
+        /* رسالة نسخ الرابط */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -150,6 +199,7 @@
         <canvas id="gameCanvas"></canvas>
         <div id="fireMessage" class="message-popup" style="color: #f39c12; text-shadow: 0 0 10px red;">🔥 كرة نارية! 🔥</div>
         <div id="multiMessage" class="message-popup" style="color: #00FFFF; text-shadow: 0 0 10px blue; top: 40%;">⚽ كرة إضافية! ⚽</div>
+        <div id="toast">تم نسخ رابط اللعبة!</div>
         
         <div id="ui-layer">
             <div class="score-board">
@@ -167,8 +217,15 @@
                 3. الطوب الذهبي 🔥 | السماوي ⚽
             </p>
             <div class="btn-group">
-                <button class="btn-primary" id="startBtn" onclick="handleMenuClick()">ابدأ اللعب</button>
-                <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullScreen()">تشغيل ملء الشاشة ⛶</button>
+                <button class="btn-primary" id="startBtn" onclick="handleMenuClick()">
+                    <span>▶️</span> ابدأ اللعب
+                </button>
+                <button class="btn-share" onclick="shareGame()">
+                    <span>🔗</span> مشاركة اللعبة
+                </button>
+                <button class="btn-fullscreen" id="fullscreenBtn" onclick="toggleFullScreen()">
+                    <span>⛶</span> ملء الشاشة
+                </button>
             </div>
         </div>
     </div>
@@ -185,6 +242,7 @@
     const levelText = document.getElementById('levelText');
     const fireMessage = document.getElementById('fireMessage');
     const multiMessage = document.getElementById('multiMessage');
+    const toast = document.getElementById('toast');
 
     // متغيرات اللعبة
     let animationId;
@@ -196,7 +254,6 @@
     let balls = [];
     let bricks = [];
 
-    // مسافة آمنة من الأسفل (لرفع الخشبة عن شريط المتصفح)
     const BOTTOM_OFFSET = 60; 
 
     const paddle = {
@@ -216,31 +273,60 @@
         colors: ['#f39c12', '#e74c3c', '#9b59b6', '#3498db', '#2ecc71']
     };
 
+    // === دالة المشاركة الذكية ===
+    async function shareGame() {
+        const shareData = {
+            title: 'لعبة كسر الطوب',
+            text: 'تحداك تكسر رقمي القياسي في هذه اللعبة الرهيبة! 🔥⚽',
+            url: window.location.href
+        };
+
+        // التحقق مما إذا كان المتصفح يدعم المشاركة الأصلية (للموبايل)
+        if (navigator.share) {
+            try {
+                await navigator.share(shareData);
+            } catch (err) {
+                console.log('Error sharing:', err);
+            }
+        } else {
+            // نسخة احتياطية للكمبيوتر: نسخ الرابط للحافظة
+            try {
+                await navigator.clipboard.writeText(window.location.href);
+                showToast();
+            } catch (err) {
+                // حل بديل للمتصفحات القديمة أو غير الآمنة
+                const textArea = document.createElement("textarea");
+                textArea.value = window.location.href;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand("Copy");
+                textArea.remove();
+                showToast();
+            }
+        }
+    }
+
+    function showToast() {
+        toast.style.opacity = 1;
+        setTimeout(() => { toast.style.opacity = 0; }, 3000);
+    }
+
     // === الدالة الاحترافية لملء الشاشة ===
     function toggleFullScreen() {
         const doc = window.document;
         const docEl = doc.documentElement;
-
-        // تعريف الوظائف بناءً على المتصفح (Chrome, Firefox, IE, Safari)
         const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
         const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
 
-        // التحقق مما إذا كنا بالفعل في وضع ملء الشاشة
         if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
-            
-            // محاولة الدخول لوضع ملء الشاشة
             if (requestFullScreen) {
-                // ملاحظة: هذا السطر يعمل على أندرويد وكروم، لكنه لا يفعل شيئاً على آيفون سفاري
                 requestFullScreen.call(docEl).catch(err => {
-                    // إذا فشل (مثل الآيفون)، نظهر التعليمات
                     showIphoneInstruction();
                 });
             } else {
-                // إذا كانت الوظيفة غير موجودة أصلاً (نسخ قديمة من آيفون)
                 showIphoneInstruction();
             }
         } else {
-            // الخروج من وضع ملء الشاشة
             if (cancelFullScreen) {
                 cancelFullScreen.call(doc);
             }
@@ -248,14 +334,11 @@
     }
 
     function showIphoneInstruction() {
-        alert("لمستخدمي الآيفون (iOS):\n\nتمنع Apple المواقع من تفعيل ملء الشاشة تلقائياً.\n\nلإخفاء الأشرطة تماماً:\n1. اضغط زر المشاركة (سهم للأعلى) في أسفل المتصفح.\n2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).\n3. افتح اللعبة من الأيقونة الجديدة.");
+        alert("لمستخدمي الآيفون (iOS):\n\nتمنع Apple المواقع من تفعيل ملء الشاشة تلقائياً.\n\nلإخفاء الأشرطة تماماً والحصول على تجربة التطبيق:\n1. اضغط زر المشاركة (سهم للأعلى) في أسفل المتصفح.\n2. اختر 'إضافة إلى الشاشة الرئيسية' (Add to Home Screen).\n3. افتح اللعبة من الأيقونة الجديدة.");
     }
 
-    // إخفاء زر ملء الشاشة إذا كانت اللعبة تعمل بالفعل كتطبيق (PWA)
     function checkStandaloneMode() {
-        // التحقق في iOS
         const isStandalone = ('standalone' in window.navigator) && (window.navigator.standalone);
-        // التحقق في أندرويد/كروم
         const isDisplayModeStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
         if (isStandalone || isDisplayModeStandalone) {
@@ -337,7 +420,6 @@
     document.addEventListener('keydown', keyDownHandler);
     document.addEventListener('keyup', keyUpHandler);
     
-    // تحسين دعم اللمس
     canvas.addEventListener('touchmove', touchMoveHandler, {passive: false});
     canvas.addEventListener('touchstart', touchMoveHandler, {passive: false});
 
@@ -361,7 +443,6 @@
         }
     }
 
-    // للمتصفحات التي تدعم المؤشر (كمبيوتر)
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         const relativeX = e.clientX - rect.left;
@@ -545,7 +626,7 @@
         menu.classList.add('success-theme');
         menuTitle.innerText = "أحسنت!";
         menuDesc.innerHTML = `أكملت المستوى ${level}<br>نقاطك الحالية: <span style="color:#2ecc71">${score}</span>`;
-        startBtn.innerText = "المستوى التالي";
+        startBtn.innerHTML = "<span>⏩</span> المستوى التالي";
         menu.classList.remove('hidden');
         menu.style.display = 'block';
     }
@@ -582,7 +663,6 @@
 
     function drawPaddle() {
         ctx.beginPath();
-        // رسم الخشبة مع مراعاة الهامش السفلي
         ctx.rect(paddle.x, canvas.height - paddle.height - BOTTOM_OFFSET, paddle.width, paddle.height);
         ctx.fillStyle = paddle.color;
         ctx.fill();
@@ -633,7 +713,7 @@
         menu.classList.remove('success-theme');
         menuTitle.innerText = "انتهت اللعبة!";
         menuDesc.innerHTML = `حصلت على ${score} نقطة.<br>وصلت للمستوى ${level}`;
-        startBtn.innerText = "أعد المحاولة";
+        startBtn.innerHTML = "<span>🔄</span> أعد المحاولة";
         menu.classList.remove('hidden');
         menu.style.display = 'block';
     }
@@ -650,7 +730,6 @@
         update();
     }
     
-    // التحقق عند التحميل إذا كان التطبيق مفتوحاً بملء الشاشة بالفعل
     window.addEventListener('load', checkStandaloneMode);
     window.addEventListener('resize', resizeCanvas);
     window.onload = resizeCanvas;
@@ -658,3 +737,5 @@
 </script>
 </body>
 </html>
+
+
